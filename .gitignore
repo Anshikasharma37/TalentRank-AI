@@ -1,0 +1,17 @@
+# Large data files — do not push
+dataset/
+*.jsonl
+
+# Auto-generated cache
+.cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Scratch files
+test_core.py
+show_results.py
+
+# IDE
+.vscode/
