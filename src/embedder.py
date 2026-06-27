@@ -4,6 +4,8 @@ import os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from config import EMBEDDING_MODEL
 
+_model = None   # initialized here so global reference in get_model() works
+
 def get_model():
     global _model
     if _model is None:
