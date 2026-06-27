@@ -191,19 +191,28 @@ def run_pipeline(
 
 
 def _write_submission(ranked: list[dict]):
-    """Write the final submission CSV with required columns."""
-    with open(OUTPUT_FILE, "w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(["candidate_id", "rank", "score", "reasoning"])
+    """Write the final submission as both CSV and Excel with required columns."""
+    import pandas as pd
 
-        for rank, cand in enumerate(ranked, 1):
-            candidate_id = cand["candidate_id"]
-            score        = round(cand.get("blend_score", cand.get("final_score", 0)), 4)
-            reasoning    = cand.get("reasoning", "").replace("\n", " ").strip()
+    rows = []
+    for rank, cand in enumerate(ranked, 1):
+        rows.append({
+            "candidate_id": cand["candidate_id"],
+            "rank":         rank,
+            "score":        round(cand.get("blend_score", cand.get("final_score", 0)), 4),
+            "reasoning":    cand.get("reasoning", "").replace("\n", " ").strip(),
+        })
 
-            writer.writerow([candidate_id, rank, score, reasoning])
+    df = pd.DataFrame(rows)
 
+    # Save as CSV 
+    df.to_csv(OUTPUT_FILE, index=False)
     print(f"  Written {len(ranked)} rows to {OUTPUT_FILE}")
+
+    # Save as Excel 
+    excel_file = OUTPUT_FILE.replace(".csv", ".xlsx")
+    df.to_excel(excel_file, index=False, sheet_name="Rankings")
+    print(f"  Written {len(ranked)} rows to {excel_file}")
 
     # Also save detailed scores for Streamlit dashboard radar charts
     _save_detailed_scores(ranked)
@@ -212,7 +221,7 @@ def _write_submission(ranked: list[dict]):
 def _save_detailed_scores(ranked: list[dict]):
 
     """Save dimension-level scores to .cache/ so Streamlit can show radar charts."""
-    
+
     os.makedirs(CACHE_DIR, exist_ok=True)
     cache_path = os.path.join(CACHE_DIR, "detailed_scores.json")
     
