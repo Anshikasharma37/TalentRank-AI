@@ -1,0 +1,30 @@
+team_name: "TalentRank AI"
+submission_date: "2026-06-30"
+
+approach_summary: >
+  Multi-stage pipeline: rule-based fast prefilter (100K → 3K, no ML),
+  sentence-transformer semantic embedding + FAISS (3K → 500),
+  5-dimension weighted scoring (500 → 200), Gemini LLM re-ranking (200 → 100).
+
+scoring_dimensions:
+  semantic_fit:     0.30  # cosine similarity: candidate career text vs JD embedding
+  career_fit:       0.25  # role family (ML/AI titles) + product company ratio + years
+  trajectory_score: 0.20  # are recent roles MORE AI-relevant than older ones?
+  behavioral:       0.15  # platform activity, response rate, GitHub, availability
+  education_cert:   0.10  # degree tier, relevant field, certs, assessment scores
+
+anti_trap_mechanisms:
+  - "Non-technical titles (Marketing Manager, Accountant, etc.) score near zero on career_fit"
+  - "JD-explicit disqualifiers (pure consulting, ghost candidates) apply penalty multipliers"
+  - "Trajectory scoring rewards candidates moving INTO ML, not just those with ML keywords"
+  - "LLM reasoning prompt explicitly instructs Gemini about the keyword trap"
+
+llm_used: "Google Gemini 1.5 Flash"
+embedding_model: "all-MiniLM-L6-v2 (sentence-transformers)"
+vector_db: "FAISS (IndexFlatIP)"
+
+key_differentiators:
+  - "Trajectory scoring: unique dimension measuring career direction, not just current state"
+  - "JD-aware disqualification: encoding explicit JD disqualifiers as penalty rules"
+  - "LLM reasoning: every row has a sentence a real recruiter would write"
+  - "Two-stage filter: 100K → 3K rule-based, 3K → 500 semantic, avoids embedding all 100K"
