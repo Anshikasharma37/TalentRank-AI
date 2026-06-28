@@ -220,10 +220,11 @@ def _write_submission(ranked: list[dict]):
 
 def _save_detailed_scores(ranked: list[dict]):
 
-    """Save dimension-level scores to .cache/ so Streamlit can show radar charts."""
+    """Save dimension-level scores to data/ so Streamlit can show radar charts on Render too."""
 
-    os.makedirs(CACHE_DIR, exist_ok=True)
-    cache_path = os.path.join(CACHE_DIR, "detailed_scores.json")
+    data_dir = os.path.join(os.path.dirname(__file__), "data")
+    os.makedirs(data_dir, exist_ok=True)
+    cache_path = os.path.join(data_dir, "detailed_scores.json")
     
     detailed = []
     for cand in ranked:
