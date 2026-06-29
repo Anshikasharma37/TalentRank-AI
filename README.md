@@ -18,7 +18,7 @@
 
 [![Run Pipeline](https://img.shields.io/badge/▶_Run_Pipeline-python_rank.py-success?style=for-the-badge)](rank.py)
 [![Live Dashboard](https://img.shields.io/badge/📊_Live_Dashboard-Render-4385F4?style=for-the-badge&logo=render&logoColor=white)](https://talentrank-ai-24gb.onrender.com/)
-[![Submission](https://img.shields.io/badge/📄_Submission-submission.csv-blue?style=for-the-badge)](submission.csv)
+[![Submission](https://img.shields.io/badge/📄_Submission-submission.xlsx-blue?style=for-the-badge)](submission.xlsx)
 
 </div>
 
