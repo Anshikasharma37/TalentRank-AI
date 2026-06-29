@@ -24,19 +24,45 @@
 
 ---
 
-## 🚨 The Trap We Were Warned About
+## 👥 Target Audience
+This system is designed for **technical recruiters, talent acquisition teams, and engineering managers** who need to efficiently identify top-tier AI/ML engineering candidates from large talent pools.
 
-> *"The right answer is NOT to find candidates with the most AI keywords. That's a trap."*
-> — Redrob Hackathon Organizers
+---
 
-The sample submission ranked an **Accountant at #2** and a **Graphic Designer at #4** — simply because they had AI keywords in their skills. Our system is built specifically to defeat this.
+## 🎯 Purpose & Goals
+The core purpose of this project is to automate candidate screening at scale. Rather than relying on simple keyword matching, the pipeline is engineered to assess a candidate's actual history of building systems, their career growth, and their likelihood of successful placement.
 
-| | ❌ Sample Submission (Bad) | ✅ TalentRank AI (Ours) |
-|---|---|---|
-| Rank 1 | Civil Engineer | **Lead AI Engineer** |
-| Rank 2 | Accountant | **Staff ML Engineer** |
-| Rank 4 | Graphic Designer | **Senior ML Engineer** |
-| Non-technical in Top 10 | **10 / 10** | **0 / 10** |
+---
+
+## ⚠️ Challenges & Issues We Solve
+
+Standard resume parsers and Applicant Tracking Systems (ATS) suffer from several critical limitations:
+1. **Keyword Stuffing**: Candidates often list popular ML libraries and buzzwords (like "LLM", "PyTorch", "RAG") without having actual engineering experience. Traditional parsers rank these profiles highly, leading to poor matches.
+2. **Out-of-Date/Ghost Candidates**: Profiles that have been inactive for months or candidates who rarely respond to recruiter outreach waste recruitment resources.
+3. **Misaligned Career Growth**: Hiring managers need to know if a candidate is actively progressing *towards* ML engineering or moving *away* from it (e.g., shifting into non-technical management).
+4. **Context-Free Filtering**: Simple rule-based systems might filter out an exceptional candidate who built a complex recommendation system simply because they did not use exact keywords from the job description.
+
+---
+
+## 💡 Our Solution
+TalentRank AI introduces a **multi-stage screening and ranking pipeline** that combines rule-based filters, semantic search, a multi-dimensional scoring engine, and Large Language Model (LLM) reasoning:
+
+### 1. Hard & Soft Disqualifiers
+Eliminates profiles that do not match technical baselines, identify candidates from non-technical backgrounds, flag inactive profiles, and discount pure-consulting backgrounds.
+
+### 2. Semantic Search (Dense Retrieval)
+We convert candidate career descriptions into vector embeddings using a sentence-transformer model and run a similarity search against the job description using **FAISS**. This surfaces candidates who built relevant systems even if they used different terminology.
+
+### 3. 5-Dimension Scoring Engine
+Evaluates candidates across five distinct pillars:
+* **Semantic Fit (30%)** — Cosine similarity of career history against the job description.
+* **Career Fit (25%)** — Professional title relevance, experience range, and product company ratio.
+* **Career Trajectory (20%)** — Measures whether the candidate's recent roles are progressively more AI/ML focused.
+* **Behavioral Engagement (15%)** — Availability flags, notice periods, and response rates.
+* **Education & Certifications (10%)** — Institutional tiers, relevant majors, assessments, and certifications.
+
+### 4. Recruiter-Quality Explanations
+Utilizes **Gemini 1.5 Flash** to analyze the top candidates and write a concise, professional summary explaining *why* each candidate was selected.
 
 ---
 
@@ -56,8 +82,6 @@ python rank.py
 streamlit run app/streamlit_app.py
 ```
 
-> ⏱️ First run ~25 min &nbsp;|&nbsp; Re-runs ~5 min (embeddings cached)
-
 ---
 
 ## 🏗️ How It Works
@@ -65,58 +89,37 @@ streamlit run app/streamlit_app.py
 ```
 100,000 Candidates (candidates.jsonl)
           │
-          ▼  Rule-based Fast Prefilter          ⏱ 28 seconds
-        3,000  ← scored by role title + behavioral signals
-          │     ← Marketing Managers, Accountants eliminated here
+          ▼  Rule-based Fast Prefilter
+        3,000  ← filtered by title family and activity signals
           │
-          ▼  Sentence-Transformer Embedding + FAISS    ⏱ 3 minutes
-          500  ← top by semantic similarity to JD
-          │     ← finds engineers who built retrieval systems
-          │       even without using exact JD keywords
+          ▼  Sentence-Transformer Embedding + FAISS
+          500  ← top candidates matching JD semantically
           │
-          ▼  Full 5-Dimension Weighted Scoring    ⏱ instant
-          200  ← best by career fit, trajectory, behavioral signals
+          ▼  Full 5-Dimension Weighted Scoring
+          200  ← top candidates based on technical & behavioral composite
           │
-          ▼  Gemini 1.5 Flash LLM Re-Ranking     ⏱ 10 minutes
-          100  → submission.csv  ✅
+          ▼  Gemini 1.5 Flash LLM Re-Ranking
+          100  → final submission (submission.csv & submission.xlsx)
 ```
 
 ---
 
-## 📐 5-Dimension Scoring Engine
-
-| Dimension | Weight | What It Actually Measures |
-|---|:---:|---|
-| 🔵 **Semantic Fit** | 30% | Cosine similarity of career descriptions vs JD embedding |
-| 🟣 **Career Fit** | 25% | ML/AI title family + product company ratio + experience range |
-| 🟡 **Trajectory** ⭐ | 20% | Are recent roles MORE AI-relevant than older ones? |
-| 🟢 **Behavioral** | 15% | Platform activity, response rate, GitHub score, availability |
-| 🔴 **Education & Certs** | 10% | Degree tier, relevant field, certifications, assessment scores |
-
-> ⭐ **Trajectory** is our unique dimension — no other team asks *"is this person moving toward AI?"* instead of just *"are they there now?"*
-
----
-
 ## 🛡️ Anti-Trap Disqualifiers
+Explicit requirements and negative signals defined in the job description are encoded as multiplier penalties:
 
-The JD listed exactly who NOT to hire. We encoded every one:
-
-| Disqualifier | Penalty |
+| Disqualifier | Penalty Multiplier |
 |---|:---:|
-| Non-technical role (Marketing, HR, Accountant...) | ×0.10 |
-| Entire career at consulting firms only (TCS, Wipro...) | ×0.15 |
-| Ghost candidate (inactive 6+ months, <10% response rate) | ×0.40 |
-| CV/Speech only, no NLP/Information Retrieval exposure | ×0.60 |
+| Non-technical role (Marketing, HR, Accountant, etc.) | ×0.10 |
+| Entire career at consulting firms only | ×0.15 |
+| Inactive candidate (6+ months inactive, low response) | ×0.40 |
+| CV/Speech-only background without NLP/IR exposure | ×0.60 |
 
 ---
 
 ## 🤖 Gemini LLM Reasoning
+Each shortlisted candidate is annotated with a concise evaluation summarizing their fit:
 
-Every row in `submission.csv` has a sentence like a real recruiter wrote it:
-
-> *"Built hybrid retrieval pipeline at Swiggy serving 50M+ users; trajectory clearly moving toward ML systems over last 3 roles; active on platform and open to Pune relocation."*
-
-This is what makes our submission stand out — judges read reasoning, not just scores.
+> *"Experienced Machine Learning Engineer with 6.1 years of experience at Razorpay; strong background in building NLP pipelines and vector search systems; highly active and immediately available."*
 
 ---
 
@@ -125,32 +128,32 @@ This is what makes our submission stand out — judges read reasoning, not just 
 ```
 TalentRank-AI/
 │
-├── 📄 rank.py                    ← Single command: runs everything
-├── ⚙️  config.py                  ← All paths, weights, keyword lists
-├── 📋 requirements.txt
-├── 📊 submission.csv             ← Final output (100 ranked candidates)
+├── 📄 rank.py                    ← Pipeline entry point
+├── ⚙️  config.py                  ← Central settings, weights, and keywords
+├── 📋 requirements.txt           ← Local dependencies
+├── 📋 requirements-app.txt       ← Streamlit deployment dependencies
+├── 📊 submission.csv             ← Final ranked candidate CSV
+├── 📊 submission.xlsx            ← Final ranked candidate Excel Sheet
 │
 ├── src/
-│   ├── jd_parser.py              ← Parse JD docx → weighted sections
-│   ├── profile_parser.py         ← Stream 100K JSONL line-by-line
-│   ├── signals_parser.py         ← Normalize 23 behavioral signals → 0–1
-│   ├── disqualifier.py           ← JD-explicit hard filter + penalties
-│   ├── scorer.py                 ← 5-dimension weighted scoring engine
-│   ├── embedder.py               ← all-MiniLM-L6-v2 embeddings
-│   ├── vector_store.py           ← FAISS IndexFlatIP + disk cache
-│   └── llm_ranker.py             ← Gemini 1.5 Flash re-ranking
+│   ├── jd_parser.py              ← Parses the Word JD document
+│   ├── profile_parser.py         ← Streams candidates from raw dataset
+│   ├── signals_parser.py         ← Normalizes candidate behavioral signals
+│   ├── disqualifier.py           ← Applies hard filters and penalties
+│   ├── scorer.py                 ← Computes the 5D weighted score
+│   ├── embedder.py               ← Text embedding helper
+│   ├── vector_store.py           ← Manages FAISS vector index
+│   └── llm_ranker.py             ← Gemini re-ranking & reasoning
 │
 └── app/
-    └── streamlit_app.py          ← Recruiter dashboard (dark mode + radar charts)
+    └── streamlit_app.py          ← Visual recruiter dashboard
 ```
 
 ---
 
-## 🏆 Top 10 Results
+## 🏆 Top Candidates Preview
 
-All top 10 are real ML/AI engineers. Zero non-technical roles — confirmed.
-
-| Rank | Title | Years | Score |
+| Rank | Title | Years of Exp | Score |
 |:---:|---|:---:|:---:|
 | 🥇 1 | Lead AI Engineer | 6.7 | 0.7951 |
 | 🥈 2 | Staff ML Engineer | 7.0 | 0.7905 |
@@ -165,42 +168,27 @@ All top 10 are real ML/AI engineers. Zero non-technical roles — confirmed.
 
 ---
 
-## 🚀 Deployment
-
-### Deploy Dashboard on Streamlit Cloud (Free)
-
-1. Push this repo to GitHub
-2. Go to **[share.streamlit.io](https://share.streamlit.io)** → Sign in with GitHub
-3. Click **"New app"**
-4. Select your repo → set **Main file path** to `app/streamlit_app.py`
-5. Under **Advanced settings → Secrets**, add:
-   ```toml
-   GEMINI_API_KEY = "AIzaSy..."
-   ```
-6. Click **Deploy** → your app is live at `https://yourname-talentrank.streamlit.app`
+## 🚀 Deployment & Local Execution
 
 ### Run Locally
-
 ```bash
 streamlit run app/streamlit_app.py
 ```
 
 ### Run on Google Colab
-
-Upload `candidates.jsonl` and `job_description.docx` to Google Drive, then:
-
+Upload the dataset files to Google Drive, then execute:
 ```python
-# Mount Drive
+# Mount Google Drive
 from google.colab import drive
 drive.mount('/content/drive')
 
 # Install packages
-!pip install -q google-generativeai sentence-transformers faiss-cpu python-docx
+!pip install -q google-generativeai sentence-transformers faiss-cpu python-docx numpy pandas openpyxl
 
-# Run pipeline
+# Set configurations and execute
 import config
-config.CANDIDATES_FILE = '/content/drive/MyDrive/TalentRank/candidates.jsonl'
-config.JD_FILE         = '/content/drive/MyDrive/TalentRank/job_description.docx'
+config.CANDIDATES_FILE = '/content/drive/MyDrive/TalentRank-AI_dataset/candidates.jsonl'
+config.JD_FILE         = '/content/drive/MyDrive/TalentRank-AI_dataset/job_description.docx'
 
 from rank import run_pipeline
 run_pipeline()
@@ -210,9 +198,10 @@ run_pipeline()
 
 ## ✅ Validation
 
+Verify the structure and formatting of the output sheet using the validator tool:
 ```bash
 python validate_submission.py submission.csv
-# Submission is valid.
+# Output: Submission is valid.
 ```
 
 ---
@@ -220,7 +209,5 @@ python validate_submission.py submission.csv
 <div align="center">
 
 Built for the **Redrob AI Hackathon** — India Runs Data & AI Challenge
-
-*Defeating keyword-stuffing, one trajectory score at a time.*
 
 </div>
